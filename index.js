@@ -13,7 +13,7 @@ const background = new Sprite({
     x: 0,
     y: 0,
   },
-  imageSrc: "Assets/background.png",
+  imageSrc: "./Assets/background.png",
 });
 
 const shop = new Sprite({
@@ -21,10 +21,11 @@ const shop = new Sprite({
     x: 600,
     y: 134,
   },
-  imageSrc: "Assets/shop.png",
-  scale: 2.7,
+  imageSrc: "./Assets/shop.png",
+  scale: 2.75,
   framesMax: 6,
 });
+
 const player = new Fighter({
   position: {
     x: 0,
@@ -37,6 +38,35 @@ const player = new Fighter({
   offset: {
     x: 0,
     y: 0,
+  },
+  imageSrc: "Assets/samuraiMack/Idle.png",
+  scale: 2.3,
+  framesMax: 8,
+  offset: {
+    x: 215,
+    y: 132,
+  },
+  sprites: {
+    idle: {
+      imageSrc: "Assets/samuraiMack/Idle.png",
+      framesMax: 8,
+    },
+    run: {
+      imageSrc: "Assets/samuraiMack/Run.png",
+      framesMax: 8,
+    },
+    jump: {
+      imageSrc: "Assets/samuraiMack/Jump.png",
+      framesMax: 2,
+    },
+    fall: {
+      imageSrc: "Assets/samuraiMack/Fall.png",
+      framesMax: 2,
+    },
+    attack1: {
+      imageSrc: "Assets/samuraiMack/Attack1.png",
+      framesMax: 6,
+    },
   },
 });
 
@@ -85,18 +115,30 @@ function animateMovements() {
   background.updateSprite();
   shop.updateSprite();
   player.updateSprite();
-  enemy.updateSprite();
+  // enemy.updateSprite();
 
   // Characters' initial velocity
   player.velocity.x = 0;
   enemy.velocity.x = 0;
 
   // Player movement
+
   if (keys.a.pressed && player.lastKey === "a") {
     player.velocity.x = -3;
+    player.switchSprites("run");
   } else if (keys.d.pressed && player.lastKey === "d") {
     player.velocity.x = 3;
+    player.switchSprites("run");
+  } else {
+    player.switchSprites("idle");
   }
+
+  if (player.velocity.y < 0) {
+    player.switchSprites("jump");
+  } else if (player.velocity.y > 0) {
+    player.switchSprites("fall");
+  }
+
   // Enemy movement
   if (keys.ArrowLeft.pressed && enemy.lastKey === "ArrowLeft") {
     enemy.velocity.x = -3;
