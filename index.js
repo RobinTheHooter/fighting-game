@@ -19,7 +19,7 @@ const background = new Sprite({
 const shop = new Sprite({
   position: {
     x: 600,
-    y: 134,
+    y: 127,
   },
   imageSrc: "./Assets/shop.png",
   scale: 2.75,
@@ -67,6 +67,22 @@ const player = new Fighter({
       imageSrc: "Assets/samuraiMack/Attack1.png",
       framesMax: 6,
     },
+    takeHit: {
+      imageSrc: "Assets/samuraiMack/Take Hit - white silhouette.png",
+      framesMax: 4,
+    },
+    death: {
+      imageSrc: "Assets/samuraiMack/Death.png",
+      framesMax: 6,
+    },
+  },
+  hitBox: {
+    offset: {
+      x: 80,
+      y: 50,
+    },
+    width: 140,
+    height: 50,
   },
 });
 
@@ -81,11 +97,54 @@ const enemy = new Fighter({
     x: 0,
     y: 10,
   },
-
-  color: "blue",
   offset: {
     x: -50,
     y: 0,
+  },
+  imageSrc: "Assets/kenji/Idle.png",
+  scale: 2.3,
+  framesMax: 4,
+  offset: {
+    x: 215,
+    y: 142,
+  },
+  sprites: {
+    idle: {
+      imageSrc: "Assets/kenji/Idle.png",
+      framesMax: 4,
+    },
+    run: {
+      imageSrc: "Assets/kenji/Run.png",
+      framesMax: 8,
+    },
+    jump: {
+      imageSrc: "Assets/kenji/Jump.png",
+      framesMax: 2,
+    },
+    fall: {
+      imageSrc: "Assets/kenji/Fall.png",
+      framesMax: 2,
+    },
+    attack1: {
+      imageSrc: "Assets/kenji/Attack1.png",
+      framesMax: 4,
+    },
+    takeHit: {
+      imageSrc: "Assets/kenji/Take hit.png",
+      framesMax: 3,
+    },
+    death: {
+      imageSrc: "Assets/kenji/Death.png",
+      framesMax: 7,
+    },
+  },
+  hitBox: {
+    offset: {
+      x: -176,
+      y: 50,
+    },
+    width: 140,
+    height: 50,
   },
 });
 
@@ -114,15 +173,16 @@ function animateMovements() {
   canvasContext.fillRect(0, 0, canvas.width, canvas.height);
   background.updateSprite();
   shop.updateSprite();
+  canvasContext.fillStyle = "rgba(255,255,255, 0.15)";
+  canvasContext.fillRect(0, 0, canvas.width, canvas.height);
   player.updateSprite();
-  // enemy.updateSprite();
+  enemy.updateSprite();
 
   // Characters' initial velocity
   player.velocity.x = 0;
   enemy.velocity.x = 0;
 
   // Player movement
-
   if (keys.a.pressed && player.lastKey === "a") {
     player.velocity.x = -3;
     player.switchSprites("run");
@@ -133,6 +193,7 @@ function animateMovements() {
     player.switchSprites("idle");
   }
 
+  // Jumping
   if (player.velocity.y < 0) {
     player.switchSprites("jump");
   } else if (player.velocity.y > 0) {
@@ -141,35 +202,64 @@ function animateMovements() {
 
   // Enemy movement
   if (keys.ArrowLeft.pressed && enemy.lastKey === "ArrowLeft") {
-    enemy.velocity.x = -3;
+    enemy.velocity.x = -5;
+    enemy.switchSprites("run");
   } else if (keys.ArrowRight.pressed && enemy.lastKey === "ArrowRight") {
-    enemy.velocity.x = 3;
+    enemy.velocity.x = 5;
+    enemy.switchSprites("run");
+  } else {
+    enemy.switchSprites("idle");
   }
 
-  // Collision detection for player
+  // Jumping
+  if (enemy.velocity.y < 0) {
+    enemy.switchSprites("jump");
+  } else if (enemy.velocity.y > 0) {
+    enemy.switchSprites("fall");
+  }
+
+  // Collision detection for player and enemy gets hit
   if (
     collisionDetection({
       rectangle1: player,
       rectangle2: enemy,
     }) &&
-    player.isAttacking
+    player.isAttacking &&
+    player.framesCurrent === 4
   ) {
+    enemy.takeHit();
     player.isAttacking = false;
-    enemy.health -= 20;
-    document.querySelector("#enemy-health").style.width = enemy.health + "%";
+
+    gsap.to("#enemy-health", {
+      width: enemy.health + "%",
+    });
   }
 
-  // Collision detection for enemy
+  // player missing attack
+  if (player.isAttacking && player.framesCurrent === 4) {
+    player.isAttacking = false;
+  }
+
+  // Collision detection for enemy and player gets hit
   if (
     collisionDetection({
       rectangle1: enemy,
       rectangle2: player,
     }) &&
-    enemy.isAttacking
+    enemy.isAttacking &&
+    enemy.framesCurrent === 2
   ) {
+    player.takeHit();
     enemy.isAttacking = false;
-    player.health -= 20;
-    document.querySelector("#player-health").style.width = player.health + "%";
+
+    // document.querySelector("#player-health").style.width = player.health + "%";
+    gsap.to("#player-health", {
+      width: player.health + "%",
+    });
+  }
+
+  if (enemy.isAttacking && enemy.framesCurrent === 2) {
+    enemy.isAttacking = false;
   }
 
   // End game based on health
@@ -181,38 +271,44 @@ function animateMovements() {
 animateMovements();
 
 window.addEventListener("keydown", (event) => {
-  switch (event.key) {
-    // Player
-    case "d":
-      keys.d.pressed = true;
-      player.lastKey = "d";
-      break;
-    case "a":
-      keys.a.pressed = true;
-      player.lastKey = "a";
-      break;
-    case "w":
-      player.velocity.y = -20;
-      break;
-    case "h":
-      player.attack();
-      break;
+  if (!player.dead) {
+    switch (event.key) {
+      // Player
+      case "d":
+        keys.d.pressed = true;
+        player.lastKey = "d";
+        break;
+      case "a":
+        keys.a.pressed = true;
+        player.lastKey = "a";
+        break;
+      case "w":
+        player.velocity.y = -20;
+        break;
+      case "h":
+        player.attack();
+        break;
+    }
 
-    // Enemy
-    case "ArrowRight":
-      keys.ArrowRight.pressed = true;
-      enemy.lastKey = "ArrowRight";
-      break;
-    case "ArrowLeft":
-      keys.ArrowLeft.pressed = true;
-      enemy.lastKey = "ArrowLeft";
-      break;
-    case "ArrowUp":
-      enemy.velocity.y = -20;
-      break;
-    case "ArrowDown":
-      enemy.isAttacking = true;
-      break;
+    if (!enemy.dead) {
+      switch (event.key) {
+        // Enemy
+        case "ArrowRight":
+          keys.ArrowRight.pressed = true;
+          enemy.lastKey = "ArrowRight";
+          break;
+        case "ArrowLeft":
+          keys.ArrowLeft.pressed = true;
+          enemy.lastKey = "ArrowLeft";
+          break;
+        case "ArrowUp":
+          enemy.velocity.y = -20;
+          break;
+        case "ArrowDown":
+          enemy.attack();
+          break;
+      }
+    }
   }
 });
 
